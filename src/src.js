@@ -40,7 +40,8 @@ var Splash = (function(window, undefined) {
 		var isIE = document.currentStyle,
 			styleValue = {},
 			isJSON = isObject(arguments[1]),
-			isArray = isLikeArray(arguments[1]);
+			isArray = isLikeArray(arguments[1]),
+			pkey;
 
 		if (isJSON) {
 			for (var key in json) {
@@ -53,8 +54,10 @@ var Splash = (function(window, undefined) {
 							strFooter = StrArr[3];
 						target.style["filter"] = strHead + json[key] * 100 + strFooter;
 					} else {
-
-						target.style[key] = json[key];
+						pkey = pfx(key);
+						if(pkey != null){
+							target.style[pkey] = json[key];
+						}
 					}
 				}
 			}
@@ -215,7 +218,9 @@ var Splash = (function(window, undefined) {
 			width: "500px", // 容器的宽
 			height: "500px", // 容器的高
 			cube_map: [4, 4], //3行3列
-			count: 16 // 块的数量
+			count: 16, // 块的数量
+			isContinue : true, // 是否连播
+			duration : 500 // 500ms
 		},
 		cube_position = [];
 
@@ -246,7 +251,8 @@ var Splash = (function(window, undefined) {
 				'height': cubeHeight + 'px',
 				'top' : cube_position[i][0] + 'px',
 				'left': cube_position[i][1] + 'px',
-				'background':  "#fff"
+				'background':  "#fff",
+				"transition": "all 0.4s ease-in-out"
 			});
 
 			cubeContainer.push(div);
@@ -303,7 +309,20 @@ var Splash = (function(window, undefined) {
 		return cover;
 	}
 
-	function moveStyle(cubes) {
+	function addMovement(cubes){
+		for(var i = 0,len = cubes.length; i < len;  i++){
+			css(cubes[i],{
+				"transform" : rotate({x : 0, y : 270, z : 90}),
+				"transformStyle" : "preserve-3d"
+			});
+		}
+		return cubes;
+	}
+
+	function Next(){
+
+	}
+	function previous(){
 
 	}
 
@@ -331,10 +350,43 @@ var Splash = (function(window, undefined) {
 
 		backgroundConver(cubes, imgs[0], config);
 
+		// cubes = addMovement(cubes);
+
 		cover = PackageCube(cubes);
 
 		container.appendChild(cover);
+
+		start(imgs, config);
+	};
+
+
+	function start(imgs, config){
+		var cubes = $$('.cube'),
+
+			isContinue = config.isContinue,
+			index = 0,
+			duration = config.duration;
+
+		if(index ==  imgs.length) index = 0;
+
+		if(imgs.length < 2){ isContinue = false}
+
+		// console.log(cubes);
+		// addMovement(cubes);
+			// debugger;
+		var timer = setInterval(function(){
+
+			backgroundConver(cubes, imgs[index], config);
+			// css($$('img')[++index],{'display' : 'block'});
+			addMovement(cubes);
+
+
+		},duration);
+
+
 	}
+
+
 
 
 	function Splash(container, config) {
