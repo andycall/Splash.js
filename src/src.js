@@ -235,8 +235,8 @@
         configDefault = {
             width: "500px", // 容器的宽
             height: "500px", // 容器的高
-            cube_map: [8, 8], //3行3列
-            count: 64, // 块的数量
+            cube_map: [4, 4], //3行3列
+            count: 16, // 块的数量
             isContinue: true, // 是否连播
             duration: 1000, // 500ms
             index : 0
@@ -269,8 +269,8 @@
 				'height': cubeHeight + 'px',
 				'top': cube_position[i][0] + 'px',
 				'left': cube_position[i][1] + 'px',
-				'background': "#fff",
-				"transition": "all 0.4s ease-in-out"
+				'background': "#fff"
+
 			}, div);
 
 			cubeContainer.push(div);
@@ -325,11 +325,22 @@
 					y: 270,
 					z: 90
 				}),
-				"transformStyle": "preserve-3d"
+				"transformStyle": "preserve-3d",
+                "transition": "all 0.4s ease-in-out"
 			}, cubeArr[i]);
 		}
 
 	}
+
+    function returnBack(){
+
+        for(var i = 0, len = cubeArr.length; i < len; i ++){
+            extend({
+                "transform" : "",
+                "transition" : ""
+            }, cubeArr[i]);
+        }
+    }
 
     /**
      * 在动画背后添加一张图片
@@ -489,13 +500,17 @@
         if(self._another)
             clearTimeout(self._another);
 
+        self.refresh();
+
+        returnBack();
+
         self._another = setTimeout(function(){
 
             self.refresh();
+            self.Run(++index);
 
         }, config.duration);
 
-        self.Run(++index);
     };
 
 
