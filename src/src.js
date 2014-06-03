@@ -235,10 +235,10 @@
         configDefault = {
             width: "500px", // 容器的宽
             height: "500px", // 容器的高
-            cube_map: [4, 4], //3行3列
-            count: 16, // 块的数量
+            cube_map: [8, 8], //3行3列
+            count: 64, // 块的数量
             isContinue: true, // 是否连播
-            duration: 500, // 500ms
+            duration: 1000, // 500ms
             index : 0
         },
         cube_position = [],
@@ -337,16 +337,25 @@
      * @param config
      */
 	function changeImageBack(index, config){
-		var backImage = imgArr[index + 1].src,
-			imgNode = document.createElement('img');
-		
-		css(imgNode,{
-			width : config.width,
-			height : config.height
-		});
-		imgNode.src = backImage;
 
-        container.appendChild(imgNode);
+	  	var backImage = imgArr[index].src,
+            findImage = container.getElementsByTagName('img'),
+			imgNode = document.createElement('img');
+
+        if(findImage.length == 0) {
+            imgNode = document.createElement('img');
+            css(imgNode,{
+                width : config.width,
+                height : config.height
+            });
+
+            imgNode.src = backImage;
+            container.appendChild(imgNode);
+
+        }
+        else{
+            findImage[0].src = backImage;
+        }
 	}
 
     /**
@@ -354,7 +363,8 @@
      */
 	Splash.prototype.init = function() {
 		var config = this.config,
-			self = this;
+			self = this,
+            duration = config.duration;
 
 		container = this.container;
 
@@ -381,25 +391,9 @@
 
     };
 
-	Splash.prototype.prev = function() {
-
-		if (options.continuous) slide(index - 1);
-		else if (index) slide(index - 1);
-
-	};
-
-	Splash.prototype.next = function (index) {
-		var self = this,
-            config = self.config;
-
-		changeImageBack(index, config);
-		addMovement(index, config);
-
-        console.log(cubeArr);
-        self.refresh();
-
-	};
-
+    /**
+     * 最初的更新节点
+     */
     Splash.prototype.refreshInit = function(){
         var self = this,
             cubeLength = cubeArr.length,
@@ -418,6 +412,9 @@
         container.appendChild(FrageMent);
     };
 
+    /**
+     * 后续的非重排更新
+     */
     Splash.prototype.refresh = function(){
         var self = this,
             cubes = container.getElementsByTagName('div');
@@ -428,18 +425,29 @@
 
     };
 
+    /**
+     * 动画入口
+     * @param index
+     * @constructor
+     */
     Splash.prototype.Run = function(index){
         var self = this,
             config = self.config;
 
+
         index == undefined && (index = config.index);
 
-        index < 0 && (index = cubeArr.length - 1) || index >= cubeArr.length && (index = 0);
+        index < 0 && (index = cubeArr.length - 1) || index >= imgArr.length && (index = 0);
 
         target = cubeArr[index];
 
+        Index = index;
+
+        backgroundConver(imgArr[index], config);
+
         self.start(index);
     };
+
 
 	Splash.prototype.start = function (index) {
 		var self = this,
@@ -447,21 +455,49 @@
 			isContinue = config.isContinue,
 			duration = config.duration;
 
-		clearTimeout(self._timer);
+		if(self._timer)
+            clearTimeout(self._timer);
 
-		if (index == imgArr.length) index = 0;
-
-		if (imgArr.length < 2) {
-			isContinue = false
-		}
+        if (imgArr.length < 2) {
+            isContinue = false
+        }
 
 		self._timer = setTimeout(function() {
-            console.log(imgArr);
+
 			self.next(index);
 
 		}, duration);
 
 	};
+
+
+    Splash.prototype.prev = function() {
+
+        if (options.continuous) slide(index - 1);
+        else if (index) slide(index - 1);
+
+    };
+
+    Splash.prototype.next = function (index) {
+        var self = this,
+            config = self.config;
+
+        changeImageBack(index, config);
+
+        addMovement(index, config);
+
+        if(self._another)
+            clearTimeout(self._another);
+
+        self._another = setTimeout(function(){
+
+            self.refresh();
+
+        }, config.duration);
+
+        self.Run(++index);
+    };
+
 
 	function Splash(container, config) {
 		this.container = container;
