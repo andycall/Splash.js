@@ -287,11 +287,11 @@
 
 		for (var i = 0, len = cubeArr.length; i < len ; i ++) {
 			percentage.push([Math.floor(i / row) * percent, i % col * percent]);
-			css(cubeArr[i], {
-				'background': "url(" + img + ") no-repeat",
+			extend({
+				'background': "url(" + img.src + ") no-repeat",
 				'background-size': row * 100 + "%",
 				'background-position': percentage[i][0] * 100 + "%" + " " + percentage[i][1] * 100 + "%"
-			});
+			}, cubeArr[i]);
 		}
 
 	}
@@ -337,7 +337,7 @@
      * @param config
      */
 	function changeImageBack(index, config){
-		var backImage = imgArr[index + 1],
+		var backImage = imgArr[index + 1].src,
 			imgNode = document.createElement('img');
 		
 		css(imgNode,{
@@ -349,7 +349,9 @@
         container.appendChild(imgNode);
 	}
 
-
+    /**
+     * 初始化
+     */
 	Splash.prototype.init = function() {
 		var config = this.config,
 			self = this;
@@ -371,13 +373,13 @@
 		
 		imgArr = wrapperImage(container);
 
-        self.Run();
-//		backgroundConver(cubeArr, imgArr[0], config);
+        backgroundConver(imgArr[Index], config);
 
-//		PackageCube(wrapper, cubeArr);
-		// console.log(imgArr);
-		// cubes = addMovement(cubes);
-	};
+        self.refreshInit();
+
+        self.Run();
+
+    };
 
 	Splash.prototype.prev = function() {
 
@@ -393,26 +395,20 @@
 		changeImageBack(index, config);
 		addMovement(index, config);
 
+        console.log(cubeArr);
         self.refresh();
+
 	};
 
-    Splash.prototype.refresh = function(){
+    Splash.prototype.refreshInit = function(){
         var self = this,
-            config = self.config,
-            cubes = container.getElementsByTagName('div'),
-            cubeLength,
-            isFirst = true,
+            cubeLength = cubeArr.length,
             div,
             FrageMent = document.createDocumentFragment();
 
-        if(!cubes){
-            cubeLength = cubeArr.length;
-        }
-
 
         for(var i = 0; i < cubeLength;  i++){
-            isFirst ? (div = document.createElement('div')) :
-                    div = cubes[i];
+            div = document.createElement('div');
 
             css(div, cubeArr[i]);
 
@@ -420,6 +416,16 @@
         }
 
         container.appendChild(FrageMent);
+    };
+
+    Splash.prototype.refresh = function(){
+        var self = this,
+            cubes = container.getElementsByTagName('div');
+
+        for(var i = 0,len = cubes.length; i < len; i ++){
+            css(cubes[i], cubeArr[i]);
+        }
+
     };
 
     Splash.prototype.Run = function(index){
@@ -450,16 +456,16 @@
 		}
 
 		self._timer = setTimeout(function() {
-			
+            console.log(imgArr);
 			self.next(index);
-		
+
 		}, duration);
 
-	}
+	};
 
 	function Splash(container, config) {
 		this.container = container;
-		this.config = config || configDefault;
+		this.config = extend(config, configDefault);
 	}
 
 
