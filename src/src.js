@@ -30,7 +30,7 @@ var Splash = (function(window, undefined) {
 
 	})();
 
-	function css(target, json) {
+	var css = Splash.prototype.css = function (target, json) {
 		if (arguments.length < 2) return;
 
 		if (typeof json == 'string') {
@@ -55,7 +55,7 @@ var Splash = (function(window, undefined) {
 						target.style["filter"] = strHead + json[key] * 100 + strFooter;
 					} else {
 						pkey = pfx(key);
-						if(pkey != null){
+						if (pkey != null) {
 							target.style[pkey] = json[key];
 						}
 					}
@@ -91,11 +91,11 @@ var Splash = (function(window, undefined) {
 		);
 	}
 
-	function isLikeArray(obj){
+	function isLikeArray(obj) {
 		return obj && obj.length >= 0 && typeof obj != 'string';
 	}
 
-	function on(target, eventName, fn) {
+	var on = Splash.prototype.on = function (target, eventName, fn) {
 		var factor = /\s+/g;
 		//    debugger;
 		var fnString = fn.toString().replace(factor, "");
@@ -116,7 +116,7 @@ var Splash = (function(window, undefined) {
 		}
 	}
 
-	function off(target, eventName) {
+	var off = Splash.prototype.off = function (target, eventName) {
 		var factor = /\s+/g;
 		var Func = target[eventName + "event"][eventName];
 		if (document.detachEvent) {
@@ -129,7 +129,7 @@ var Splash = (function(window, undefined) {
 	}
 
 
-	function offAll(target, eventName) {
+	var offAll = Splash.prototype.offAll = function (target, eventName) {
 		var factor = /\s+/g;
 		var Funcs = target[eventName + "event"];
 		var e;
@@ -219,15 +219,18 @@ var Splash = (function(window, undefined) {
 			height: "500px", // 容器的高
 			cube_map: [4, 4], //3行3列
 			count: 16, // 块的数量
-			isContinue : true, // 是否连播
-			duration : 500 // 500ms
+			isContinue: true, // 是否连播
+			duration: 500 // 500ms
 		},
-		cube_position = [];
+		cube_position = [],
+		Index = 0,
+		imgArr = [],
+		cubeArr = [],
+		container;
 
 
 
-
- 	// PRIVATE TOOLS
+	// PRIVATE TOOLS
 
 	function cubeConstructor(config) {
 		var count = config.count,
@@ -245,13 +248,13 @@ var Splash = (function(window, undefined) {
 			var div = document.createElement('div');
 			div.className = "cube";
 
-			css(div,{
-				"position" : "absolute",
-				"width" : cubeWidth + "px",
+			css(div, {
+				"position": "absolute",
+				"width": cubeWidth + "px",
 				'height': cubeHeight + 'px',
-				'top' : cube_position[i][0] + 'px',
+				'top': cube_position[i][0] + 'px',
 				'left': cube_position[i][1] + 'px',
-				'background':  "#fff",
+				'background': "#fff",
 				"transition": "all 0.4s ease-in-out"
 			});
 
@@ -272,10 +275,10 @@ var Splash = (function(window, undefined) {
 
 		for (var i = 0; i < cubeCount; i++) {
 			percentage.push([Math.floor(i / row) * percen, i % col * percen]);
-			css(cubes[i],{
-				'background' : "url(" + img + ") no-repeat",
-				'background-size' : row * 100 + "%",
-				'background-position' :  percentage[i][0] * 100 + "%" + " " + percentage[i][1] * 100 + "%"
+			css(cubes[i], {
+				'background': "url(" + img + ") no-repeat",
+				'background-size': row * 100 + "%",
+				'background-position': percentage[i][0] * 100 + "%" + " " + percentage[i][1] * 100 + "%"
 			});
 
 		};
@@ -293,101 +296,111 @@ var Splash = (function(window, undefined) {
 
 		for (var i = 0, len = imgs.length; i < len; i++) {
 			imgSrc.push(imgs[i].src);
-			css(imgs[i], {'display': 'none'});
+			wrapper.removeChild(imgs[i]);
 		}
+
+		imgArr = imgSrc;
 
 		return imgSrc;
 	}
 
-	function PackageCube(cubes) {
+	function PackageCube(wrapper, cubes) {
 		var cover = document.createElement('div');
 		cover.id = "cover";
 		for (var i = 0, len = cubes.length; i < len; i++) {
 			cover.appendChild(cubes[i]);
 		}
 
-		return cover;
+		wrapper.appendChild(cover);
 	}
 
-	function addMovement(cubes){
-		for(var i = 0,len = cubes.length; i < len;  i++){
-			css(cubes[i],{
-				"transform" : rotate({x : 0, y : 270, z : 90}),
-				"transformStyle" : "preserve-3d"
+	function addMovement(cubes) {
+		var cover = $("#cover")';'
+		for (var i = 0, len = cubes.length; i < len; i++) {
+			css(cubes[i], {
+				"transform": rotate({
+					x: 0,
+					y: 270,
+					z: 90
+				}),
+				"transformStyle": "preserve-3d"
 			});
 		}
-		return cubes;
-	}
 
-	function Next(){
-
-	}
-	function previous(){
-
+		setTimeout(function(){
+			container.removeChild(cover);
+		},400);
 	}
 
 
 	Splash.prototype.init = function() {
-		var container = this.container,
-			config = this.config,
+		var config = this.config,
 			cubes,
 			imgs,
 			cover;
 
+		container = this.container;
+
 		css(container, {
-			'width' : config.width,
-			'height' :  config.height,
-			'border' :  '1px solid #000',
-			'position' : 'relative'
+			'width': config.width,
+			'height': config.height,
+			'border': '1px solid #000',
+			'position': 'relative'
 		});
 
 		if (!isElement(container)) {
 			throw new Error('invalid container')
 		}
 
-		cubes = cubeConstructor(config);
-		imgs = wrapperImage(container);
+		cubeArr = cubeConstructor(config);
+		
+		wrapperImage(container);
 
 		backgroundConver(cubes, imgs[0], config);
 
 		// cubes = addMovement(cubes);
 
-		cover = PackageCube(cubes);
-
-		container.appendChild(cover);
-
 		start(imgs, config);
 	};
 
+	function prev() {
 
-	function start(imgs, config){
-		var cubes = $$('.cube'),
+		if (options.continuous) slide(index - 1);
+		else if (index) slide(index - 1);
 
-			isContinue = config.isContinue,
-			index = 0,
-			duration = config.duration;
+	}
 
-		if(index ==  imgs.length) index = 0;
+	function next() {
 
-		if(imgs.length < 2){ isContinue = false}
-
-		// console.log(cubes);
-		// addMovement(cubes);
-			// debugger;
-		var timer = setInterval(function(){
-
-			backgroundConver(cubes, imgs[index], config);
-			// css($$('img')[++index],{'display' : 'block'});
-			addMovement(cubes);
-
-
-		},duration);
-
+		if (options.continuous) slide(index + 1);
+		else if (index < slides.length - 1) slide(index + 1);
 
 	}
 
 
+	function start(imgs, config) {
+		var cubes = $$('.cube'),
+			cubeImage = $("#wrapper").getElementsByTagName('img'),
+			isContinue = config.isContinue;
 
+		index = undefined && (index = index);
+
+		if (index == imgs.length) index = 0;
+
+		if (imgs.length < 2) {
+			isContinue = false
+		}
+
+		var timer = setInterval(function() {
+
+			backgroundConver(cubes, imgs[index], config);
+
+			addMovement(cubes);
+
+
+		}, duration);
+
+	}
 
 	function Splash(container, config) {
 		this.container = container;
