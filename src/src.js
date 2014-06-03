@@ -1,8 +1,11 @@
-var Splash = (function(window, undefined) {
+(function(window, undefined) {
 	"use strict";
 
 	// HELPER FUNCTIONS
 
+    /**
+     * 获取兼容当前浏览器的属性
+     */
 	var pfx = (function() {
 
 		var style = document.createElement('dummy').style,
@@ -30,6 +33,11 @@ var Splash = (function(window, undefined) {
 
 	})();
 
+
+    /**
+     * 兼容的属性函数
+     * @type {css}
+     */
 	var css = Splash.prototype.css = function (target, json) {
 		if (arguments.length < 2) return;
 
@@ -78,12 +86,23 @@ var Splash = (function(window, undefined) {
 			}
 			return styleValue;
 		}
-	}
+	};
 
+
+    /**
+     * 判断是否是对象
+     * @param obj
+     * @returns {boolean}
+     */
 	function isObject(obj) {
 		return Object.prototype.toString.call(obj) === '[object Object]';
 	}
 
+    /**
+     * 判断是否是DOM对象
+     * @param o
+     * @returns {boolean}
+     */
 	function isElement(o) {
 		return (
 			typeof HTMLElement === "function" ? o instanceof HTMLElement : //DOM2
@@ -91,10 +110,19 @@ var Splash = (function(window, undefined) {
 		);
 	}
 
+    /**
+     * 判断是否是数组或者类数组
+     * @param obj
+     * @returns {*|boolean}
+     */
 	function isLikeArray(obj) {
 		return obj && obj.length >= 0 && typeof obj != 'string';
 	}
 
+    /**
+     * 事件添加函数
+     * @type {on}
+     */
 	var on = Splash.prototype.on = function (target, eventName, fn) {
 		var factor = /\s+/g;
 		//    debugger;
@@ -114,8 +142,12 @@ var Splash = (function(window, undefined) {
 		} else {
 			target['on' + eventName] = eventFunc;
 		}
-	}
+	};
 
+    /**
+     * 事件解除函数
+     * @type {off}
+     */
 	var off = Splash.prototype.off = function (target, eventName) {
 		var factor = /\s+/g;
 		var Func = target[eventName + "event"][eventName];
@@ -126,9 +158,13 @@ var Splash = (function(window, undefined) {
 		} else {
 			target['on' + eventName] = null;
 		}
-	}
+	};
 
 
+    /**
+     * 解除一个对象的所有事件
+     * @type {offAll}
+     */
 	var offAll = Splash.prototype.offAll = function (target, eventName) {
 		var factor = /\s+/g;
 		var Funcs = target[eventName + "event"];
@@ -145,8 +181,7 @@ var Splash = (function(window, undefined) {
 				}
 			}
 		}
-	}
-
+	};
 
 	var translate = function(t) {
 		return " translate3d(" + t.x + "px," + t.y + "px," + t.z + "px) ";
@@ -193,44 +228,25 @@ var Splash = (function(window, undefined) {
 		return data;
 	}
 
-	// CHECK SUPPORT
+    var body = document.body;
 
-	var ua = navigator.userAgent.toLowerCase();
-	var body = document.body;
-	var isSupported =
-		// browser should support CSS 3D transtorms 
-		(pfx("perspective") !== null) &&
-
-		// and `classList` and `dataset` APIs
-		(body.classList) &&
-		(body.dataset) &&
-
-		// but some mobile devices need to be blacklisted,
-		// because their CSS 3D support or hardware is not
-		// good enough to run impress.js properly, sorry...
-		(ua.search(/(iphone)|(ipod)|(android)/) === -1);
-
-
-	// GLOBALS AND DEFAULTS
-
-	var _containerData = {},
-		configDefault = {
-			width: "500px", // 容器的宽
-			height: "500px", // 容器的高
-			cube_map: [4, 4], //3行3列
-			count: 16, // 块的数量
-			isContinue: true, // 是否连播
-			duration: 500 // 500ms
-		},
-		cube_position = [],
-		Index = 0,
-		imgArr = [],
-		cubeArr = [],
-		container;
-
-
-
-	// PRIVATE TOOLS
+    // PRIVATE TOOLS
+    var _containerData = {},
+        configDefault = {
+            width: "500px", // 容器的宽
+            height: "500px", // 容器的高
+            cube_map: [4, 4], //3行3列
+            count: 16, // 块的数量
+            isContinue: true, // 是否连播
+            duration: 500, // 500ms
+            index : 0
+        },
+        cube_position = [],
+        imgArr = [],
+        cubeArr = [],
+        Index = 0,
+        container,
+        target;
 
 	function cubeConstructor(config) {
 		var count = config.count,
@@ -245,10 +261,9 @@ var Splash = (function(window, undefined) {
 
 		for (var i = 0, len = config.count; i < len; i++) {
 			cube_position.push([(i % col) * cubeHeight, (Math.floor(i / row) % row) * cubeWidth]);
-			var div = document.createElement('div');
-			div.className = "cube";
+			var div = {};
 
-			css(div, {
+			extend({
 				"position": "absolute",
 				"width": cubeWidth + "px",
 				'height': cubeHeight + 'px',
@@ -256,7 +271,7 @@ var Splash = (function(window, undefined) {
 				'left': cube_position[i][1] + 'px',
 				'background': "#fff",
 				"transition": "all 0.4s ease-in-out"
-			});
+			}, div);
 
 			cubeContainer.push(div);
 		}
@@ -264,80 +279,80 @@ var Splash = (function(window, undefined) {
 		return cubeContainer;
 	}
 
-	function backgroundConver(cubes, img, config) {
-		var cubeCount = cubes.length,
-			ContainerWidth = parseInt(config.width),
-			ContainerHeight = parseInt(config.height),
-			row = config.cube_map[0],
+	function backgroundConver(img, config) {
+		var	row = config.cube_map[0],
 			col = config.cube_map[1],
 			percentage = [],
-			percen = 1 / (row - 1)
+			percent = 1 / (row - 1);
 
-		for (var i = 0; i < cubeCount; i++) {
-			percentage.push([Math.floor(i / row) * percen, i % col * percen]);
-			css(cubes[i], {
+		for (var i = 0, len = cubeArr.length; i < len ; i ++) {
+			percentage.push([Math.floor(i / row) * percent, i % col * percent]);
+			css(cubeArr[i], {
 				'background': "url(" + img + ") no-repeat",
 				'background-size': row * 100 + "%",
 				'background-position': percentage[i][0] * 100 + "%" + " " + percentage[i][1] * 100 + "%"
 			});
-
-		};
-		return cubes;
+		}
 
 	}
 
-	function wrapperImage(wrapper) {
-		if (!isElement(wrapper)) {
+	function wrapperImage() {
+		if (!isElement(container)) {
 			return
 		}
 
-		var imgs = wrapper.getElementsByTagName('img'),
+		var imgs = container.querySelectorAll('img'),
 			imgSrc = [];
 
-		for (var i = 0, len = imgs.length; i < len; i++) {
-			imgSrc.push(imgs[i].src);
-			wrapper.removeChild(imgs[i]);
+		for (var i = 0; i < imgs.length; i++) {
+            var img = imgs[i];
+			imgSrc.push(img);
+			container.removeChild(img);
 		}
-
-		imgArr = imgSrc;
 
 		return imgSrc;
 	}
 
-	function PackageCube(wrapper, cubes) {
-		var cover = document.createElement('div');
-		cover.id = "cover";
-		for (var i = 0, len = cubes.length; i < len; i++) {
-			cover.appendChild(cubes[i]);
-		}
+    /**
+     * 动画动作的添加
+     */
+	function addMovement() {
 
-		wrapper.appendChild(cover);
-	}
-
-	function addMovement(cubes) {
-		var cover = $("#cover")';'
-		for (var i = 0, len = cubes.length; i < len; i++) {
-			css(cubes[i], {
+		for (var i = 0, len = cubeArr.length; i < len; i++) {
+			extend({
 				"transform": rotate({
 					x: 0,
 					y: 270,
 					z: 90
 				}),
 				"transformStyle": "preserve-3d"
-			});
+			}, cubeArr[i]);
 		}
 
-		setTimeout(function(){
-			container.removeChild(cover);
-		},400);
+	}
+
+    /**
+     * 在动画背后添加一张图片
+     * @param index
+     * @param config
+     */
+	function changeImageBack(index, config){
+		var backImage = imgArr[index + 1],
+			imgNode = document.createElement('img');
+		
+		css(imgNode,{
+			width : config.width,
+			height : config.height
+		});
+		imgNode.src = backImage;
+
+        container.appendChild(imgNode);
 	}
 
 
 	Splash.prototype.init = function() {
 		var config = this.config,
-			cubes,
-			imgs,
-			cover;
+			self = this;
 
 		container = this.container;
 
@@ -354,50 +369,90 @@ var Splash = (function(window, undefined) {
 
 		cubeArr = cubeConstructor(config);
 		
-		wrapperImage(container);
+		imgArr = wrapperImage(container);
 
-		backgroundConver(cubes, imgs[0], config);
+        self.Run();
+//		backgroundConver(cubeArr, imgArr[0], config);
 
+//		PackageCube(wrapper, cubeArr);
+		// console.log(imgArr);
 		// cubes = addMovement(cubes);
-
-		start(imgs, config);
 	};
 
-	function prev() {
+	Splash.prototype.prev = function() {
 
 		if (options.continuous) slide(index - 1);
 		else if (index) slide(index - 1);
 
-	}
+	};
 
-	function next() {
+	Splash.prototype.next = function (index) {
+		var self = this,
+            config = self.config;
 
-		if (options.continuous) slide(index + 1);
-		else if (index < slides.length - 1) slide(index + 1);
+		changeImageBack(index, config);
+		addMovement(index, config);
 
-	}
+        self.refresh();
+	};
+
+    Splash.prototype.refresh = function(){
+        var self = this,
+            config = self.config,
+            cubes = container.getElementsByTagName('div'),
+            cubeLength,
+            isFirst = true,
+            div,
+            FrageMent = document.createDocumentFragment();
+
+        if(!cubes){
+            cubeLength = cubeArr.length;
+        }
 
 
-	function start(imgs, config) {
-		var cubes = $$('.cube'),
-			cubeImage = $("#wrapper").getElementsByTagName('img'),
-			isContinue = config.isContinue;
+        for(var i = 0; i < cubeLength;  i++){
+            isFirst ? (div = document.createElement('div')) :
+                    div = cubes[i];
 
-		index = undefined && (index = index);
+            css(div, cubeArr[i]);
 
-		if (index == imgs.length) index = 0;
+            FrageMent.appendChild(div);
+        }
 
-		if (imgs.length < 2) {
+        container.appendChild(FrageMent);
+    };
+
+    Splash.prototype.Run = function(index){
+        var self = this,
+            config = self.config;
+
+        index == undefined && (index = config.index);
+
+        index < 0 && (index = cubeArr.length - 1) || index >= cubeArr.length && (index = 0);
+
+        target = cubeArr[index];
+
+        self.start(index);
+    };
+
+	Splash.prototype.start = function (index) {
+		var self = this,
+			config = self.config,
+			isContinue = config.isContinue,
+			duration = config.duration;
+
+		clearTimeout(self._timer);
+
+		if (index == imgArr.length) index = 0;
+
+		if (imgArr.length < 2) {
 			isContinue = false
 		}
 
-		var timer = setInterval(function() {
-
-			backgroundConver(cubes, imgs[index], config);
-
-			addMovement(cubes);
-
-
+		self._timer = setTimeout(function() {
+			
+			self.next(index);
+		
 		}, duration);
 
 	}
@@ -409,6 +464,6 @@ var Splash = (function(window, undefined) {
 
 
 
-	return Splash;
+	window.Splash = Splash;
 
 })(window);
