@@ -239,14 +239,45 @@
             count: 16, // 块的数量
             isContinue: true, // 是否连播
             duration: 1000, // 500ms
-            index : 0
+            index : 0,
+            from : "rotateX(0deg) rotateY(0deg) rotateZ(0deg)",
+            to : "rotateX(0deg) rotateY(270deg) rotateZ(90deg)"
         },
         cube_position = [],
         imgArr = [],
+        slidePos = [],
         cubeArr = [],
         Index = 0,
         container,
         target;
+
+    function CreateFrame(from, to){
+        var cssAnimation = document.createElement('style');
+        cssAnimation.type = "text/css";
+        var pfx = "-webkit- -moz- -o-  ".split(" ");
+
+        var str = "";
+
+        for(var i = 0,len = pfx.length; i < len; i ++){
+            str += "@" + pfx[i] + "keyframes slider{" +
+                "from {" + pfx[i]  + "transform: " + from  + " }" +
+                "to {" +  pfx[i]  + "transform" + to +  "}" +
+            "}";
+        }
+
+        var rules = document.createTextNode(str);
+
+        console.log(rules);
+        cssAnimation.appendChild(rules);
+
+        document.getElementsByTagName('head')[0].appendChild(cssAnimation);
+
+
+    }
+
+
+
+
 
 	function cubeConstructor(config) {
 		var count = config.count,
@@ -316,7 +347,9 @@
     /**
      * 动画动作的添加
      */
-	function addMovement() {
+	function addMovement(speed) {
+
+
 
 		for (var i = 0, len = cubeArr.length; i < len; i++) {
 			extend({
@@ -326,7 +359,7 @@
 					z: 90
 				}),
 				"transformStyle": "preserve-3d",
-                "transition": "all 0.4s ease-in-out"
+                "transition": "all " + 400 +  "ms ease-in"
 			}, cubeArr[i]);
 		}
 
@@ -375,7 +408,9 @@
 	Splash.prototype.init = function() {
 		var config = this.config,
 			self = this,
-            duration = config.duration;
+            duration = config.duration,
+            from = config.form,
+            to = config.to;
 
 		container = this.container;
 
@@ -398,7 +433,9 @@
 
         self.refreshInit();
 
-        self.Run();
+        CreateFrame(from, to);
+
+        self.Run(Index);
 
     };
 
@@ -495,7 +532,7 @@
 
         changeImageBack(index, config);
 
-        addMovement(index, config);
+        addMovement();
 
         if(self._another)
             clearTimeout(self._another);
@@ -510,6 +547,21 @@
             self.Run(++index);
 
         }, config.duration);
+
+    };
+
+
+    Splash.prototype.move = function(index, speed, duration){
+        var self = this,
+            config = self.config;
+
+        changeImageBack(index, config);
+
+        addMovement(speed);
+
+
+
+
 
     };
 
