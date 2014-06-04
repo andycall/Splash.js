@@ -35,7 +35,7 @@
 
 
     /**
-     * 兼容的属性函数
+     * 兼容的属性函数, 对于无法处理的属性，将以数组的形式返回
      * @type {css}
      */
 	var css = Splash.prototype.css = function (target, json) {
@@ -49,38 +49,55 @@
 			styleValue = {},
 			isJSON = isObject(arguments[1]),
 			isArray = isLikeArray(arguments[1]),
-			pkey;
+			pkey,
+            unKnown = [],
+            filter,
+            RegFilter;
 
 		if (isJSON) {
 			for (var key in json) {
 				if (json.hasOwnProperty(key)) {
 					if (isIE && key == 'opacity') {
-						var filter = target.currentStyle['filter'],
-							RegFilter = /(.+opacity=)([0-9]*)([\,\)]?.+)/,
-							StrArr = RegFilter.exec(filter),
+
+                        filter = target.currentStyle['filter'];
+                        RegFilter = /(.+opacity=)([0-9]*)([\,\)]?.+)/;
+
+                        var StrArr = RegFilter.exec(filter),
 							strHead = StrArr[1],
 							strFooter = StrArr[3];
+
 						target.style["filter"] = strHead + json[key] * 100 + strFooter;
-					} else {
+
+                    } else {
 						pkey = pfx(key);
 						if (pkey != null) {
 							target.style[pkey] = json[key];
 						}
+                        else{
+                            unKnown.push(key);
+                        }
 					}
 				}
 			}
+
+            return unKnown;
+
 		} else if (isArray) {
 
 			for (var i = 0, len = json.length; i < len; i++) {
 
 				if (isIE) {
 					if (json[i] == 'opacity') {
-						var RegFilter = /[\,\)]?opacity=([0-9]+)/,
-							filter = target.currentStyle["filter"];
-						styleValue[json[i]] = parseFloat(RegFilter.exec(filter)[1]);
+                        RegFilter = /[\,\)]?opacity=([0-9]+)/;
+						filter = target.currentStyle["filter"];
+
+                        styleValue[json[i]] = parseFloat(RegFilter.exec(filter)[1]);
 					}
+
 					styleValue[json[i]] = target.currentStyle[json[i]];
-				} else {
+
+					} else {
+
 					styleValue[json[i]] = window.getComputedStyle(target, null)[json[i]];
 				}
 			}
@@ -241,7 +258,8 @@
             duration: 1000, // 500ms
             index : 0,
             from : "rotateX(0deg) rotateY(0deg) rotateZ(0deg)",
-            to : "rotateX(0deg) rotateY(270deg) rotateZ(90deg)"
+            to : "rotateX(0deg) rotateY(270deg) rotateZ(90deg)",
+            speed  : 500
         },
         cube_position = [],
         imgArr = [],
@@ -250,6 +268,7 @@
         Index = 0,
         container,
         target;
+
 
     function CreateFrame(from, to){
         var cssAnimation = document.createElement('style');
@@ -277,7 +296,10 @@
 
 
 
-
+//    <div class="cube">
+//        <div class="front">Front</div>
+//        <div class="Back">Back</div>
+//    </div>
 
 	function cubeConstructor(config) {
 		var count = config.count,
@@ -288,7 +310,8 @@
 			cubeHeight = ContainerHeight / cube_map[1],
 			cubeContainer = [],
 			row = config.cube_map[0],
-			col = config.cube_map[1];
+			col = config.cube_map[1],
+            speed = config.speed;
 
 		for (var i = 0, len = config.count; i < len; i++) {
 			cube_position.push([(i % col) * cubeHeight, (Math.floor(i / row) % row) * cubeWidth]);
@@ -300,8 +323,21 @@
 				'height': cubeHeight + 'px',
 				'top': cube_position[i][0] + 'px',
 				'left': cube_position[i][1] + 'px',
-				'background': "#fff"
-
+				'background': "#fff",
+                'animation' : 'linear slider ' + speed + "s",
+                'transformStyle' : 'preserve-3d',
+                "front" : {
+                    "position" : "absolute",
+                    "width" : cubeWidth + 'px',
+                    "height" : cubeHeight + 'px',
+                    "transform" : "rotateY(0deg)"
+                },
+                "back" : {
+                    "position" : "absolute",
+                    "width" : cubeWidth + 'px',
+                    "height" : cubeHeight + 'px',
+                    "transform" : "rotateY(180deg) translateZ(1px)"
+                }
 			}, div);
 
 			cubeContainer.push(div);
@@ -406,7 +442,7 @@
      * 初始化
      */
 	Splash.prototype.init = function() {
-		var config = this.config,
+		var     config = this.config,
 			self = this,
             duration = config.duration,
             from = config.form,
@@ -446,13 +482,29 @@
         var self = this,
             cubeLength = cubeArr.length,
             div,
-            FrageMent = document.createDocumentFragment();
+            FrageMent = document.createDocumentFragment(),
+            unKnown,
+            childStyle,
+            child;
 
 
         for(var i = 0; i < cubeLength;  i++){
             div = document.createElement('div');
+            div.className = 'cube';
 
-            css(div, cubeArr[i]);
+            unKnown = css(div, cubeArr[i]);
+
+            // 说明有无法处理的属性
+            if(unKnown.length > 0){
+                unKnown.forEach(function(value, index){
+
+                    if(isObject(value)){
+                        childStyle = unKnown[index];
+                        child = document.createElement('div');
+                        css(child, childStyle);
+                    }
+                })
+            }
 
             FrageMent.appendChild(div);
         }
@@ -558,10 +610,6 @@
         changeImageBack(index, config);
 
         addMovement(speed);
-
-
-
-
 
     };
 
