@@ -74,7 +74,7 @@
 							target.style[pkey] = json[key];
 						}
                         else{
-                            unKnown.push(key);
+                            unKnown.push(json[key]);
                         }
 					}
 				}
@@ -258,13 +258,12 @@
             duration: 1000, // 500ms
             index : 0,
             from : "rotateX(0deg) rotateY(0deg) rotateZ(0deg)",
-            to : "rotateX(0deg) rotateY(270deg) rotateZ(90deg)",
-            speed  : 500
+            to : "rotateX(0deg) rotateY(180deg) rotateZ(0deg)",
+            speed  : 1000
         },
         cube_position = [],
         imgArr = [],
         slidePos = [],
-        cubeArr = [],
         Index = 0,
         container,
         target;
@@ -278,10 +277,10 @@
         var str = "";
 
         for(var i = 0,len = pfx.length; i < len; i ++){
-            str += "@" + pfx[i] + "keyframes slider{" +
-                "from {" + pfx[i]  + "transform: " + from  + " }" +
-                "to {" +  pfx[i]  + "transform" + to +  "}" +
-            "}";
+            str += "@" + pfx[i] + "keyframes slider{\n" +
+                "from { \n" + pfx[i]  + "transform: " + from  + " } \n" +
+                " to { \n" +  pfx[i]  + "transform: " + to +  "} \n" +
+            "} \n";
         }
 
         var rules = document.createTextNode(str);
@@ -311,11 +310,13 @@
 			cubeContainer = [],
 			row = config.cube_map[0],
 			col = config.cube_map[1],
-            speed = config.speed;
+            speed = config.speed,
+            delay;
 
 		for (var i = 0, len = config.count; i < len; i++) {
 			cube_position.push([(i % col) * cubeHeight, (Math.floor(i / row) % row) * cubeWidth]);
 			var div = {};
+            delay = Math.random() * 10;
 
 			extend({
 				"position": "absolute",
@@ -324,7 +325,8 @@
 				'top': cube_position[i][0] + 'px',
 				'left': cube_position[i][1] + 'px',
 				'background': "#fff",
-                'animation' : 'linear slider ' + speed + "s",
+                "transition": pfx("transform") + " " + speed + "ms " + " linear",
+                "transitionDelay" : delay * 100 + "ms",
                 'transformStyle' : 'preserve-3d',
                 "front" : {
                     "position" : "absolute",
@@ -346,19 +348,21 @@
 		return cubeContainer;
 	}
 
-	function backgroundConver(img, config) {
+	Splash.prototype.backgroundConver = function(face, img, config) {
 		var	row = config.cube_map[0],
 			col = config.cube_map[1],
 			percentage = [],
-			percent = 1 / (row - 1);
+			percent = 1 / (row - 1),
+            cubeArr = this.cubeArr;
 
 		for (var i = 0, len = cubeArr.length; i < len ; i ++) {
+
 			percentage.push([Math.floor(i / row) * percent, i % col * percent]);
 			extend({
 				'background': "url(" + img.src + ") no-repeat",
 				'background-size': row * 100 + "%",
 				'background-position': percentage[i][0] * 100 + "%" + " " + percentage[i][1] * 100 + "%"
-			}, cubeArr[i]);
+			}, cubeArr[i][face]);
 		}
 
 	}
@@ -385,7 +389,7 @@
      */
 	function addMovement(speed) {
 
-
+        var cubeArr = this.cubeArr;
 
 		for (var i = 0, len = cubeArr.length; i < len; i++) {
 			extend({
@@ -402,6 +406,7 @@
 	}
 
     function returnBack(){
+        var cubeArr = this.cubeArr;
 
         for(var i = 0, len = cubeArr.length; i < len; i ++){
             extend({
@@ -442,10 +447,10 @@
      * 初始化
      */
 	Splash.prototype.init = function() {
-		var     config = this.config,
+		var config = this.config,
 			self = this,
             duration = config.duration,
-            from = config.form,
+            from = config.from,
             to = config.to;
 
 		container = this.container;
@@ -461,17 +466,21 @@
 			throw new Error('invalid container')
 		}
 
-		cubeArr = cubeConstructor(config);
+        CreateFrame(from, to);
+
+        self.cubeArr = cubeConstructor(config);
 		
 		imgArr = wrapperImage(container);
 
-        backgroundConver(imgArr[Index], config);
+        self.backgroundConver("front", imgArr[Index], config);
+        self.backgroundConver('back', imgArr[Index + 1], config);
+
 
         self.refreshInit();
 
-        CreateFrame(from, to);
-
-        self.Run(Index);
+        console.log('123');
+//
+//        self.Run(Index);
 
     };
 
@@ -480,6 +489,7 @@
      */
     Splash.prototype.refreshInit = function(){
         var self = this,
+            cubeArr = self.cubeArr,
             cubeLength = cubeArr.length,
             div,
             FrageMent = document.createDocumentFragment(),
@@ -502,6 +512,7 @@
                         childStyle = unKnown[index];
                         child = document.createElement('div');
                         css(child, childStyle);
+                        div.appendChild(child);
                     }
                 })
             }
@@ -517,6 +528,7 @@
      */
     Splash.prototype.refresh = function(){
         var self = this,
+            cubeArr = self.cubeArr,
             cubes = container.getElementsByTagName('div');
 
         for(var i = 0,len = cubes.length; i < len; i ++){
@@ -532,7 +544,8 @@
      */
     Splash.prototype.Run = function(index){
         var self = this,
-            config = self.config;
+            config = self.config,
+            cubeArr = self.cubeArr;
 
 
         index == undefined && (index = config.index);
@@ -543,7 +556,7 @@
 
         Index = index;
 
-        backgroundConver(imgArr[index], config);
+        self.backgroundConver(imgArr[index], config);
 
         self.start(index);
     };
@@ -602,21 +615,35 @@
 
     };
 
+//
+//    Splash.prototype.move = function(index, speed, duration){
+//        var self = this,
+//            config = self.config;
+//
+//        changeImageBack(index, config);
+//
+//        addMovement(speed);
+//
+//    };
 
-    Splash.prototype.move = function(index, speed, duration){
-        var self = this,
-            config = self.config;
+    /**
+     * 动画函数
+     * @param value
+     */
+    Splash.prototype.move = function(value){
+        var cubes = $$(".cube");
 
-        changeImageBack(index, config);
-
-        addMovement(speed);
-
+        for (var i = 0, len = cubes.length; i < len; i++) {
+            css(cubes[i], {
+                "transform": rotate(value)
+            });
+        }
     };
-
 
 	function Splash(container, config) {
 		this.container = container;
 		this.config = extend(config, configDefault);
+        this.cubeArr = [];
 	}
 
 

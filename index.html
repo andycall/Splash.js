@@ -4,20 +4,34 @@
 	<meta charset="UTF-8">
 	<title>PictureSwap</title>
 	<style>
-	</style>
+
+
+    </style>
 </head>
 <body>
 	<div id="container">
-		<img src="./image/1.jpg" alt="image1">
+		<img src="./image/2.png" alt="image1">
 		<img src="./image/1.jpg" alt="image1">
 	</div>
+
+    <button id="next">Next</button>
 </body>
 <script type="text/javascript" src="src/src.js"></script>
 
 <script type="text/javascript">
 var runner = new Splash(document.getElementById('container'),{});
+var next = document.getElementById('next');
 
 runner.init();
+
+var start = {x : 0, y : 0, z : 0};
+
+next.onclick = function(){
+    start.y += 180;
+    runner.move(start);
+}
+
+
 
 // console.log(Splash);
 
