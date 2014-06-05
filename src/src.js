@@ -74,7 +74,7 @@
 							target.style[pkey] = json[key];
 						}
                         else{
-                            unKnown.push(json[key]);
+                            unKnown.push([json[key], key]);
                         }
 					}
 				}
@@ -252,10 +252,10 @@
         configDefault = {
             width: "500px", // 容器的宽
             height: "500px", // 容器的高
-            cube_map: [4, 4], //3行3列
-            count: 16, // 块的数量
+            cube_map: [9, 9], //3行3列
+            count: 81, // 块的数量
             isContinue: true, // 是否连播
-            duration: 1000, // 500ms
+            duration: 2000, // 500ms
             index : 0,
             from : "rotateX(0deg) rotateY(0deg) rotateZ(0deg)",
             to : "rotateX(0deg) rotateY(180deg) rotateZ(0deg)",
@@ -263,10 +263,11 @@
         },
         cube_position = [],
         imgArr = [],
-        slidePos = [],
         Index = 0,
         container,
-        target;
+        target,
+        swap = new Swap(),
+        start = {x : 0, y : 0, z : 0};
 
 
     function CreateFrame(from, to){
@@ -279,13 +280,13 @@
         for(var i = 0,len = pfx.length; i < len; i ++){
             str += "@" + pfx[i] + "keyframes slider{\n" +
                 "from { \n" + pfx[i]  + "transform: " + from  + " } \n" +
+                " 50 %{ background : rgba(0,0,0,0.8);}" +
                 " to { \n" +  pfx[i]  + "transform: " + to +  "} \n" +
             "} \n";
         }
 
         var rules = document.createTextNode(str);
 
-        console.log(rules);
         cssAnimation.appendChild(rules);
 
         document.getElementsByTagName('head')[0].appendChild(cssAnimation);
@@ -311,12 +312,11 @@
 			row = config.cube_map[0],
 			col = config.cube_map[1],
             speed = config.speed,
-            delay;
+            delay = 0;
 
 		for (var i = 0, len = config.count; i < len; i++) {
 			cube_position.push([(i % col) * cubeHeight, (Math.floor(i / row) % row) * cubeWidth]);
 			var div = {};
-            delay = Math.random() * 10;
 
 			extend({
 				"position": "absolute",
@@ -342,6 +342,8 @@
                 }
 			}, div);
 
+
+
 			cubeContainer.push(div);
 		}
 
@@ -351,18 +353,19 @@
 	Splash.prototype.backgroundConver = function(face, img, config) {
 		var	row = config.cube_map[0],
 			col = config.cube_map[1],
+            cubes = $$("." + face),
 			percentage = [],
 			percent = 1 / (row - 1),
             cubeArr = this.cubeArr;
 
-		for (var i = 0, len = cubeArr.length; i < len ; i ++) {
+		for (var i = 0, len = cubes.length; i < len ; i ++) {
 
 			percentage.push([Math.floor(i / row) * percent, i % col * percent]);
-			extend({
+			css(cubes[i], {
 				'background': "url(" + img.src + ") no-repeat",
 				'background-size': row * 100 + "%",
 				'background-position': percentage[i][0] * 100 + "%" + " " + percentage[i][1] * 100 + "%"
-			}, cubeArr[i][face]);
+			});
 		}
 
 	}
@@ -472,15 +475,12 @@
 		
 		imgArr = wrapperImage(container);
 
-        self.backgroundConver("front", imgArr[Index], config);
-        self.backgroundConver('back', imgArr[Index + 1], config);
-
-
         self.refreshInit();
 
-        console.log('123');
+        self.backgroundConver("front", imgArr[Index], config);
+        self.backgroundConver('back', imgArr[Index + 1], config);
 //
-//        self.Run(Index);
+        self.Run(Index);
 
     };
 
@@ -495,7 +495,8 @@
             FrageMent = document.createDocumentFragment(),
             unKnown,
             childStyle,
-            child;
+            child,
+            childType;
 
 
         for(var i = 0; i < cubeLength;  i++){
@@ -508,10 +509,12 @@
             if(unKnown.length > 0){
                 unKnown.forEach(function(value, index){
 
-                    if(isObject(value)){
-                        childStyle = unKnown[index];
+                    if(isObject(value[0])){
+                        childStyle = unKnown[index][0];
+                        childType = unKnown[index][1];
                         child = document.createElement('div');
                         css(child, childStyle);
+                        child.className = childType;
                         div.appendChild(child);
                     }
                 })
@@ -537,6 +540,25 @@
 
     };
 
+    function Swap(){
+        this.flag = [0,1];
+        this.index = 0;
+    }
+
+    Swap.prototype.circle = function(arr){
+        var self = this,
+            flag = self.flag,
+            index = self.index;
+
+        self.index = self.flag[self.index] ? 0 : 1;
+
+        return arr[self.index];
+
+    }
+
+
+
+
     /**
      * 动画入口
      * @param index
@@ -547,7 +569,6 @@
             config = self.config,
             cubeArr = self.cubeArr;
 
-
         index == undefined && (index = config.index);
 
         index < 0 && (index = cubeArr.length - 1) || index >= imgArr.length && (index = 0);
@@ -556,9 +577,10 @@
 
         Index = index;
 
-        self.backgroundConver(imgArr[index], config);
+//
+//        self.backgroundConver(imgArr[index], config);
 
-        self.start(index);
+        self.next(index);
     };
 
 
@@ -591,40 +613,35 @@
 
     };
 
-    Splash.prototype.next = function (index) {
+    Splash.prototype.next = function () {
         var self = this,
-            config = self.config;
+            config = self.config,
+            background;
 
-        changeImageBack(index, config);
+        self.move(start);
 
-        addMovement();
+        start.y += 180;
 
         if(self._another)
             clearTimeout(self._another);
 
-        self.refresh();
-
-        returnBack();
-
         self._another = setTimeout(function(){
 
-            self.refresh();
-            self.Run(++index);
+            background = swap.circle(["front", "back"]);
 
+            console.log("before", Index);
+            if(Index < imgArr.length && imgArr[Index + 1]){
+                Index ++;
+                self.backgroundConver(background, imgArr[Index], config);
+
+            }
+
+            console.log("after", Index);
+
+            self.Run(Index);
         }, config.duration);
 
     };
-
-//
-//    Splash.prototype.move = function(index, speed, duration){
-//        var self = this,
-//            config = self.config;
-//
-//        changeImageBack(index, config);
-//
-//        addMovement(speed);
-//
-//    };
 
     /**
      * 动画函数

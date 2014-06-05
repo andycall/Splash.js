@@ -10,8 +10,9 @@
 </head>
 <body>
 	<div id="container">
-		<img src="./image/2.png" alt="image1">
 		<img src="./image/1.jpg" alt="image1">
+		<img src="./image/2.png" alt="image2">
+        <img src="./image/3.png" alt="image3"/>
 	</div>
 
     <button id="next">Next</button>
@@ -19,7 +20,9 @@
 <script type="text/javascript" src="src/src.js"></script>
 
 <script type="text/javascript">
-var runner = new Splash(document.getElementById('container'),{});
+var runner = new Splash(document.getElementById('container'),{
+    speed : 1000
+});
 var next = document.getElementById('next');
 
 runner.init();
@@ -29,7 +32,7 @@ var start = {x : 0, y : 0, z : 0};
 next.onclick = function(){
     start.y += 180;
     runner.move(start);
-}
+};
 
 
 
