@@ -16,24 +16,29 @@
 	</div>
 
     <button id="next">Next</button>
+    <button id="previous">previous</button>
 </body>
 <script type="text/javascript" src="src/src.js"></script>
 <script type="text/javascript" src='src/socket.io.js'></script>
 <script type="text/javascript" ></script>
 <script type="text/javascript">
 var runner = new Splash(document.getElementById('container'),{
-    speed : 1000
+    width: "500px"
 });
 var next = document.getElementById('next');
-
+var previous = document.getElementById('previous');
 runner.init();
 
 var start = {x : 0, y : 0, z : 0};
 
 next.onclick = function(){
-    start.y += 180;
-    runner.move(start);
+    runner.next();
 };
+
+previous.onclick = function(){
+    runner.prev();
+
+}
 
 
 
