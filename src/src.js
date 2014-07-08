@@ -253,35 +253,9 @@
         imgArr = [],
         Index = 0,
         container,
-        target,
         swap = new Swap(),
-        start = {x : 0, y : 0, z : 0},
+        changeStyle = {x : 0, y : 0, z : 0},
         isAnimation = false;
-
-
-    function CreateFrame(from, to){
-        var cssAnimation = document.createElement('style');
-        cssAnimation.type = "text/css";
-        var pfx = "-webkit- -moz- -o-  ".split(" ");
-
-        var str = "";
-
-        for(var i = 0,len = pfx.length; i < len; i ++){
-            str += "@" + pfx[i] + "keyframes slider{\n" +
-                "from { \n" + pfx[i]  + "transform: " + from  + " } \n" +
-                " 50 %{ background : rgba(0,0,0,0.8);}" +
-                " to { \n" +  pfx[i]  + "transform: " + to +  "} \n" +
-            "} \n";
-        }
-
-        var rules = document.createTextNode(str);
-
-        cssAnimation.appendChild(rules);
-
-        document.getElementsByTagName('head')[0].appendChild(cssAnimation);
-
-
-    }
 
 	function cubeConstructor(config) {
 		var count = config.count,
@@ -331,6 +305,44 @@
 		return cubeContainer;
 	}
 
+    Splash.prototype._addButtonEvent = function(obj){
+        var index,
+            self = this,
+            isContinue = self.config.isContinue;
+
+        on(obj, 'click', function(){
+            index = parseInt(this.innerHTML);
+            if(isAnimation) return;
+
+            Index = index - 1;
+
+            clearInterval(self._cancelSpeed);
+
+            self.slide(Index, changeStyle, function(){
+                Index ++;
+                if(!isContinue) return;
+
+                self.Run(Index);
+            });
+        });
+    };
+
+
+    Splash.prototype._listConstructor = function(){
+        var wrapper = document.createElement('ul'),
+            self = this;
+
+        for(var i = 0,len = imgArr.length; i < len; i ++){
+            var li = document.createElement('li');
+            li.textContent = i + 1;
+            self._addButtonEvent(li);
+            wrapper.appendChild(li);
+        }
+
+        container.appendChild(wrapper);
+    };
+
+
 	Splash.prototype.backgroundConver = function(face, img, config) {
 		var	row = config.cube_map[0],
 			col = config.cube_map[1],
@@ -349,7 +361,7 @@
 			});
 		}
 
-	}
+	};
 
 	function wrapperImage() {
 		if (!isElement(container)) {
@@ -391,13 +403,13 @@
 			throw new Error('invalid container')
 		}
 
-        CreateFrame(from, to);
-
         self.cubeArr = cubeConstructor(config);
 		
 		imgArr = wrapperImage(container);
 
         self.refreshInit();
+
+        self._listConstructor();
 
         self.backgroundConver("front", imgArr[Index], config);
         self.backgroundConver('back', imgArr[Index + 1], config);
@@ -469,8 +481,6 @@
     };
 
 
-
-
     /**
      * 动画入口
      * @param index
@@ -481,32 +491,14 @@
             config = self.config,
             cubeArr = self.cubeArr;
 
+
         index == undefined && (index = config.index);
 
-        index < 0 && (index = imgArr.length - 1) || index >= (imgArr.length - 1) && (index = -1);
-
-        target = cubeArr[index];
+        index < 0 && (index = imgArr.length - 1) || index > (imgArr.length - 1) && (index = 0);
 
         Index = index;
 
         self.next();
-    };
-
-    Splash.prototype.prev = function() {
-        var self = this,
-            isContinue = self.config.isContinue;
-
-        if(!isContinue) return;
-
-
-        self.slide(Index - 1, start, function(){
-            if(!isContinue) return;
-            Index--;
-            self.Run(Index);
-        });
-
-        start.y += 180;
-
     };
 
     Splash.prototype.next = function () {
@@ -515,13 +507,13 @@
 
         if(isAnimation) return;
 
-        self.slide(Index + 1 ,start, function(){
+        self.slide(Index,changeStyle, function(){
             Index ++;
             if(!isContinue) return;
             self.Run(Index);
         });
 
-        start.y += 180;
+
 
     };
 
@@ -531,6 +523,12 @@
         return (len + (Index % len)) % len;
     };
 
+    /**
+     * 切换动画
+     * @param to
+     * @param moveStyle
+     * @param callback
+     */
     Splash.prototype.slide = function(to, moveStyle, callback){
         var self = this,
             config = self.config,
@@ -540,14 +538,13 @@
             delay = config.delay,
             isContinue = config.isContinue;
 
-        to < 0 && (to = imgArr.length - 1) || to > (imgArr.length - 1) && (to = 0);
+        changeStyle.y += 180;
 
-        self.move(moveStyle, speed, duration , function(){
+        background = swap.circle(['front', 'back']);
 
-            background = swap.circle(['front', 'back']);
+        self.backgroundConver(background, imgArr[to], config);
 
-            self.backgroundConver(background, imgArr[to], config);
-
+        self.move(moveStyle, speed, duration, function(){
             callback.call(self);
         });
     };
@@ -571,9 +568,12 @@
         if(self._cancelSpeed)
             clearTimeout(self._cancelSpeed);
 
+        // 动画停止
+        setTimeout(function(){
+            isAnimation = false;
+        }, speed);
 
         self._cancelSpeed = setTimeout(function(){
-            isAnimation = false;
 
             callback();
 
