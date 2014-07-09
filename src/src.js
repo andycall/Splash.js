@@ -246,7 +246,7 @@
             duration: 2000, // 500ms
             index : 0,
             speed  : 400,
-            transitionEnd : function(){alert(1)}
+            transitionEnd : function(){console.log(this)}
 
         },
         cube_position = [], // 方块位置缓存数组
@@ -308,8 +308,7 @@
                 }
 			}, div);
 
-            div[pfxTransform] = changeStyle;
-
+            div[pfxTransform] = rotate(changeStyle);
 
 			cubeContainer.push(div);
 		}
@@ -555,23 +554,16 @@
     Splash.prototype.Run = function(index){
         var self = this,
             config = self.config,
-            cubeArr = self.cubeArr;
+            cubeArr = self.cubeArr,
+            isContinue = self.config.isContinue;
 
-        var lis = container.getElementsByTagName('li');
+        if(isAnimation) return;
 
-        for(var i = 0,len = lis.length; i < len; i ++){
-            lis[i].className = "select";
-        }
-
-        index == undefined && (index = config.index);
-
-        index < 0 && (index = imgArr.length - 1) || index > (imgArr.length - 1) && (index = 0);
-
-        lis[index].className = "selected";
-
-        Index = index;
-
-        self.next();
+        self.slide(Index, changeStyle, function(){
+            Index++;
+            if(!isContinue) return;
+            self.Run(Index);
+        });
     };
 
     /**
@@ -582,6 +574,8 @@
             isContinue = self.config.isContinue;
 
         if(isAnimation) return;
+
+        Index++;
 
         self.slide(Index, changeStyle, function(){
             Index ++;
@@ -599,6 +593,8 @@
             isContinue = self.config.isContinue;
 
         if(isAnimation) return;
+
+        Index--;
 
         self.slide(Index, changeStyle, function(){
             Index --;
@@ -624,11 +620,20 @@
 
         changeStyle.y += 180;
 
-        background = swap.circle(['front', 'back']);
 
+        to == undefined && (to = config.index);
+
+        to < 0 && (to = imgArr.length - 1) || to > (imgArr.length - 1) && (to = 0);
+
+
+        Index = to;
+
+        background = swap.circle(['back', 'front']);
         backgroundConver.call(self, background, imgArr[to], config);
 
+
         self.move(moveStyle, speed, duration, function(){
+
             callback.call(self);
         });
     };
@@ -638,34 +643,46 @@
      * 动画函数
      * @param value
      */
-    Splash.prototype.move = function(value, speed, duration, callback){
+    Splash.prototype.move = function(value, speed, duration, callback) {
         var cubes = $$(".cube"),
             self = this,
             transitionEnd = self.config.transitionEnd;
 
         isAnimation = true;
 
-//        for (var i = 0, len = cubes.length; i < len; i++) {
-//            css(cubes[i], {
-//                transform : rotate(value)
-//            });
-//        }
+        setTimeout(function(){
+            for (var i = 0, len = cubes.length; i < len; i++) {
+                css(cubes[i], {
+                    transform: rotate(value)
+                });
+            }
+        },0)
 
-//        if(self._cancelSpeed)
-//            clearTimeout(self._cancelSpeed);
-//
-////        // 动画停止
-////        setTimeout(function(){
-////            isAnimation = false;
-//////            alert(1);
-//////          transitzionEnd.call(self);
-////        }, speed);
-////
-////        self._cancelSpeed = setTimeout(function(){
-////
-////            callback();
-////
-////        }, speed + duration);
+
+        if(self._cancelSpeed)
+            clearTimeout(self._cancelSpeed);
+
+        // 动画停止
+        setTimeout(function(){
+            isAnimation = false;
+
+            var lis = container.getElementsByTagName('li');
+
+            for(var i = 0,len = lis.length; i < len; i ++){
+                lis[i].className = "select";
+            }
+
+            lis[Index].className = "selected";
+
+            transitionEnd.call(lis[Index]);
+
+        }, speed);
+
+        self._cancelSpeed = setTimeout(function(){
+
+            callback();
+
+        }, speed + duration);
 
     };
 

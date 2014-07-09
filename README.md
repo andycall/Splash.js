@@ -33,7 +33,7 @@ Splash.js
 
 ## 切换列表
 
-会动态创建
+会动态创建在container容器内
 
     <ul>
         <li class="select">1</li>
@@ -55,5 +55,6 @@ ul 和 li 的样式需要自己去设定.
 4. speed // 动画的时间
 5. index // 动画开始时的索引
 6. isContinue // 切换是不是需要连播
- 
+7. transitionEnd: function(){console.log(this)} // 动画结束后触发的回调函数， this指向为当前的li对象
+
 

@@ -32,6 +32,8 @@
 		<img src="./image/1.png" alt="image1" />
 		<img src="./image/2.png" alt="image2" />
 	</div>
+<button id="next">Next</button>
+<button id="prev">Prev</button>
 </body>
 <script type="text/javascript" src="src/src.js"></script>
 <script type="text/javascript" ></script>
@@ -41,6 +43,15 @@ var runner = new Splash(document.getElementById('container'),{
     duration : 2000
 });
 runner.init();
+
+document.getElementById('next').onclick = function(){
+    runner.next();
+}
+
+
+document.getElementById('prev').onclick = function(){
+    runner.prev();
+}
 </script>
 
 </html>
