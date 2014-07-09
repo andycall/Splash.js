@@ -6,7 +6,7 @@
     /**
      * 获取兼容当前浏览器的属性
      */
-	var pfx = Splash.prototype.pfx = (function() {
+	var pfx = (function() {
 
 		var style = document.createElement('dummy').style,
 			prefixes = 'Webkit Moz O ms Khtml'.split(' '),
@@ -161,49 +161,6 @@
 		}
 	};
 
-    /**
-     * 事件解除函数
-     * @type {off}
-     */
-	var off = Splash.prototype.off = function (target, eventName) {
-		var factor = /\s+/g;
-		var Func = target[eventName + "event"][eventName];
-		if (document.detachEvent) {
-			target.detachEvent('on' + eventName, Func);
-		} else if (document.removeEventListener) {
-			target.removeEventListener(eventName, Func, false);
-		} else {
-			target['on' + eventName] = null;
-		}
-	};
-
-
-    /**
-     * 解除一个对象的所有事件
-     * @type {offAll}
-     */
-	var offAll = Splash.prototype.offAll = function (target, eventName) {
-		var factor = /\s+/g;
-		var Funcs = target[eventName + "event"];
-		var e;
-		for (var key in Funcs) {
-			if (Funcs.hasOwnProperty(key)) {
-				e = Funcs[key];
-				if (document.detachEvent) {
-					target.detachEvent('on' + eventName, e);
-				} else if (document.addEventListener) {
-					target.removeEventListener(eventName, e, false);
-				} else {
-					target['on' + eventName] = null;
-				}
-			}
-		}
-	};
-
-	var translate = function(t) {
-		return " translate3d(" + t.x + "px," + t.y + "px," + t.z + "px) ";
-	};
-
 	var rotate = function(r, revert) {
 		var rX = " rotateX(" + r.x + "deg) ",
 			rY = " rotateY(" + r.y + "deg) ",
@@ -235,42 +192,42 @@
 		return extension;
 	}
 
-    // PRIVATE TOOLS
-    var _containerData = {},
-        configDefault = {
+    // Global Variables
+    var configDefault = {
             width: "500px", // 容器的宽
             height: "500px", // 容器的高
-            cube_map: [9, 9], //3行3列
-            count: 81, // 块的数量
+            cube_map: 9, //3行3列
             isContinue: true, // 是否连播
             duration: 2000, // 500ms
             index : 0,
-            from : "rotateX(0deg) rotateY(0deg) rotateZ(0deg)",
-            to : "rotateX(0deg) rotateY(180deg) rotateZ(0deg)",
             speed  : 400
         },
-        cube_position = [],
-        imgArr = [],
-        Index = 0,
-        container,
-        swap = new Swap(),
-        changeStyle = {x : 0, y : 0, z : 0},
-        isAnimation = false;
+        cube_position = [], // 方块位置缓存数组
+        imgArr = [],       // 图片缓存数组
+        Index = 0,  // 切换索引
+        container, // 容器
+        swap = new Swap(), // 摆动器
+        changeStyle = {x : 0, y : 0, z : 0}, // 切换效果对象
+        isAnimation = false; // 判断是否正在进行动画
 
+    /**
+     * 方块构造器
+     * @param config
+     * @returns {Array}
+     */
 	function cubeConstructor(config) {
-		var count = config.count,
-			cube_map = config.cube_map,
+		var count = config.cube_map * config.cube_map,
+			cube_map = [config.cube_map, config.cube_map],
 			ContainerWidth = parseInt(config.width),
 			ContainerHeight = parseInt(config.height),
 			cubeWidth = ContainerWidth / cube_map[0],
 			cubeHeight = ContainerHeight / cube_map[1],
 			cubeContainer = [],
-			row = config.cube_map[0],
-			col = config.cube_map[1],
-            speed = config.speed,
-            duration = config.duration;
+			row = cube_map[0],
+			col = cube_map[1],
+            speed = config.speed;
 
-		for (var i = 0, len = config.count; i < len; i++) {
+		for (var i = 0, len = count; i < len; i++) {
 			cube_position.push([(i % col) * cubeHeight, (Math.floor(i / row) % row) * cubeWidth]);
 			var div = {};
 
@@ -305,13 +262,19 @@
 		return cubeContainer;
 	}
 
-    Splash.prototype._addButtonEvent = function(obj){
+
+    /**
+     * 为索引添加click事件
+     * @param obj
+     * @private
+     */
+    function addButtonEvent (obj){
         var index,
             self = this,
             isContinue = self.config.isContinue;
 
-        on(obj, 'click', function(){
-            index = parseInt(this.innerHTML);
+        function fireAction(){
+            index = parseInt(self.innerHTML);
             if(isAnimation) return;
 
             Index = index - 1;
@@ -324,32 +287,47 @@
 
                 self.Run(Index);
             });
+        }
+
+        on(obj, 'click', function(){
+            fireAction.call(self);
         });
+        on(obj,'mouseover', function(){
+            fireAction().call(self);
+        })
     };
 
-
-    Splash.prototype._listConstructor = function(){
+    /**
+     * 添加索引
+     * @private
+     */
+    function listConstructor(){
         var wrapper = document.createElement('ul'),
             self = this;
 
         for(var i = 0,len = imgArr.length; i < len; i ++){
             var li = document.createElement('li');
             li.textContent = i + 1;
-            self._addButtonEvent(li);
+            addButtonEvent.call(self, li);
             wrapper.appendChild(li);
         }
 
         container.appendChild(wrapper);
     };
 
-
-	Splash.prototype.backgroundConver = function(face, img, config) {
-		var	row = config.cube_map[0],
-			col = config.cube_map[1],
+    /**
+     * 负责为每个小方块设置背景
+     * @param face
+     * @param img
+     * @param config
+     */
+	function backgroundConver(face, img, config) {
+		var	row = config.cube_map,
+			col = config.cube_map,
             cubes = $$("." + face),
 			percentage = [],
-			percent = 1 / (row - 1),
-            cubeArr = this.cubeArr;
+			percent = 1 / (row - 1);
+
 
 		for (var i = 0, len = cubes.length; i < len ; i ++) {
 
@@ -363,65 +341,44 @@
 
 	};
 
-	function wrapperImage() {
-		if (!isElement(container)) {
-			return
-		}
-
-		var imgs = container.querySelectorAll('img'),
-			imgSrc = [];
-
-		for (var i = 0; i < imgs.length; i++) {
-            var img = imgs[i];
-			imgSrc.push(img);
-			container.removeChild(img);
-		}
-
-		return imgSrc;
-	}
-
     /**
-     * 初始化
+     * 检测容器内的图片，并获取图片的宽高
      */
-	Splash.prototype.init = function() {
-		var config = this.config,
-			self = this,
-            duration = config.duration,
-            from = config.from,
-            to = config.to;
+    function checkImg(){
+        var imgs = container.querySelectorAll('img'),
+            imgSrc = [],
+            width = 0,
+            height = 0,
+            life = 1;
 
-		container = this.container;
+        for(var i = 0; i < imgs.length; i ++){
+            var img = imgs[i],
+                styles = css(img,["width", "height"]);
 
-		css(container, {
-			'width': config.width,
-			'height': config.height,
-			'border': '1px solid #000',
-			'position': 'relative'
-		});
+            imgSrc.push(img);
+            container.removeChild(img);
 
-		if (!isElement(container)) {
-			throw new Error('invalid container')
-		}
+            if(width != styles.width || height != styles.height){
+                life--;
+            }
 
-        self.cubeArr = cubeConstructor(config);
-		
-		imgArr = wrapperImage(container);
+            if(life < 0) return [];
 
-        self.refreshInit();
+            width = styles.width;
+            height = styles.height;
 
-        self._listConstructor();
+        }
 
-        self.backgroundConver("front", imgArr[Index], config);
-        self.backgroundConver('back', imgArr[Index + 1], config);
+        imgSrc.width = width;
+        imgSrc.height = height;
 
-        self.Run(Index);
-
-    };
+        return imgSrc;
+    }
 
     /**
      * 最初的更新节点
      */
-    Splash.prototype.refreshInit = function(){
+    function refreshInit(){
         var self = this,
             cubeArr = self.cubeArr,
             cubeLength = cubeArr.length,
@@ -458,7 +415,7 @@
         }
 
         container.appendChild(FrageMent);
-    };
+    }
 
     /**
      * 交换工具函数
@@ -474,12 +431,45 @@
             flag = self.flag,
             index = self.index;
 
-        self.index = self.flag[self.index] ? 0 : 1;
+        self.index = flag[index] ? 0 : 1;
 
         return arr[self.index];
 
     };
 
+    /**
+     * 初始化
+     */
+    Splash.prototype.init = function() {
+        var config = this.config,
+            self = this;
+
+        container = this.container;
+
+        imgArr = checkImg(container);
+
+        css(container, {
+            'width': imgArr.width,
+            'height': imgArr.height,
+            'position': 'relative'
+        });
+
+        if (!isElement(container)) {
+            throw new Error('invalid container')
+        }
+
+        self.cubeArr = cubeConstructor(config);
+
+        refreshInit.call(self);
+
+        listConstructor.call(self);
+
+        backgroundConver.call(self, "front", imgArr[Index], config);
+        backgroundConver.call(self, 'back', imgArr[Index + 1], config);
+
+        self.Run(Index);
+
+    };
 
     /**
      * 动画入口
@@ -501,27 +491,38 @@
         self.next();
     };
 
+    /**
+     * 下一个图片
+     */
     Splash.prototype.next = function () {
         var self = this,
             isContinue = self.config.isContinue;
 
         if(isAnimation) return;
 
-        self.slide(Index,changeStyle, function(){
+        self.slide(Index, changeStyle, function(){
             Index ++;
             if(!isContinue) return;
             self.Run(Index);
         });
 
-
-
     };
 
-    Splash.prototype.circle = function(){
-        var len = imgArr.length;
+    /**
+     * 上一个图片
+     */
+    Splash.prototype.prev = function(){
+        var self = this,
+            isContinue = self.config.isContinue;
 
-        return (len + (Index % len)) % len;
-    };
+        if(isAnimation) return;
+
+        self.slide(Index, changeStyle, function(){
+            Index --;
+            if(!isContinue) return;
+            self.Run(Index);
+        });
+    }
 
     /**
      * 切换动画
@@ -542,7 +543,7 @@
 
         background = swap.circle(['front', 'back']);
 
-        self.backgroundConver(background, imgArr[to], config);
+        backgroundConver.call(self, background, imgArr[to], config);
 
         self.move(moveStyle, speed, duration, function(){
             callback.call(self);
@@ -587,7 +588,6 @@
 		this.config = extend(config, configDefault);
         this.cubeArr = [];
 	}
-
 
 	window.Splash = Splash;
 
