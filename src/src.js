@@ -1,3 +1,19 @@
+/**
+ * Splash.js
+ *
+ * Splash.js is a simple tool to build some wonderful
+ * transform styles
+ *
+ * ------------------------------------------------
+ *  author:  AndyCall
+ *  version: 0.0.1
+ *  source:     http://github.com/dongtiangche/Splash.js
+ *  contact : <a href="mailto:dongtiangche@gmail.com">Andy Call</a>
+ */
+
+
+
+
 (function(window, undefined) {
 	"use strict";
 
@@ -33,6 +49,37 @@
 
 	})();
 
+    /**
+     * 在某些地方需要返回类似-webkit-transform这样的东西
+     */
+    var pfx_second = (function(){
+
+        var style = document.createElement('dummy').style,
+            prefixes = 'Webkit Moz O ms Khtml'.split(' '),
+            prefix = '-webkit -moz -o -ms -khtml'.split(' '),
+            memory = {};
+
+        return function(prop) {
+            if (typeof memory[prop] === "undefined") {
+
+                var ucProp = prop.charAt(0).toUpperCase() + prop.substr(1),
+                    props = (prop + ' ' + prefixes.join(ucProp + ' ') + ucProp).split(' '),
+                    real_prop = (prop + " "  + prefix.join('-' + prop + ' ')).split(' ');
+
+                for (var i in props) {
+                    if (style[props[i]] !== undefined) {
+                        memory[prop] = real_prop[i];
+                        break;
+                    }
+                }
+
+            }
+
+            return memory[prop];
+        };
+
+
+    })();
 
     /**
      * 兼容的属性函数, 对于无法处理的属性，将以数组的形式返回
@@ -194,13 +241,13 @@
 
     // Global Variables
     var configDefault = {
-            width: "500px", // 容器的宽
-            height: "500px", // 容器的高
-            cube_map: 9, //3行3列
+            cube_map: 13, //3行3列
             isContinue: true, // 是否连播
             duration: 2000, // 500ms
             index : 0,
-            speed  : 400
+            speed  : 400,
+            transitionEnd : function(){alert(1)}
+
         },
         cube_position = [], // 方块位置缓存数组
         imgArr = [],       // 图片缓存数组
@@ -220,12 +267,14 @@
 			cube_map = [config.cube_map, config.cube_map],
 			ContainerWidth = parseInt(config.width),
 			ContainerHeight = parseInt(config.height),
-			cubeWidth = ContainerWidth / cube_map[0],
-			cubeHeight = ContainerHeight / cube_map[1],
+			cubeWidth = parseFloat((ContainerWidth / cube_map[0]).toFixed(8)),
+			cubeHeight = parseFloat((ContainerHeight / cube_map[1]).toFixed(8)),
 			cubeContainer = [],
 			row = cube_map[0],
 			col = cube_map[1],
-            speed = config.speed;
+            speed = config.speed,
+            transformPfx = pfx_second("transform"),
+            pfxTransform = pfx("transform");
 
 		for (var i = 0, len = count; i < len; i++) {
 			cube_position.push([(i % col) * cubeHeight, (Math.floor(i / row) % row) * cubeWidth]);
@@ -233,27 +282,34 @@
 
 			extend({
 				"position": "absolute",
+                "display" : "inline-block",
 				"width": cubeWidth + "px",
 				'height': cubeHeight + 'px',
 				'top': cube_position[i][0] + 'px',
 				'left': cube_position[i][1] + 'px',
 				'background': "#fff",
-                "transition": "-webkit-transform" + " " + speed + "ms " + " linear",
+                "transition": transformPfx + " " + speed + "ms " + " linear",
                 "transitionDelay"  : 0+ "ms",
                 'transformStyle' : 'preserve-3d',
+                "WebkitBackfaceVisibility": "hidden",
                 "front" : {
                     "position" : "absolute",
                     "width" : cubeWidth + 'px',
                     "height" : cubeHeight + 'px',
-                    "transform" : "rotateY(0deg)"
+                    "transform" : "rotateY(0deg)",
+                    "WebkitBackfaceVisibility": "hidden"
                 },
                 "back" : {
                     "position" : "absolute",
                     "width" : cubeWidth + 'px',
                     "height" : cubeHeight + 'px',
-                    "transform" : "rotateY(180deg) translateZ(1px)"
+                    "transform" : "rotateY(180deg) translateZ(1px)",
+                    "WebkitBackfaceVisibility": "hidden"
                 }
 			}, div);
+
+            div[pfxTransform] = changeStyle;
+
 
 			cubeContainer.push(div);
 		}
@@ -271,13 +327,22 @@
     function addButtonEvent (obj){
         var index,
             self = this,
-            isContinue = self.config.isContinue;
+            isContinue = self.config.isContinue,
+            lis;
 
         function fireAction(){
-            index = parseInt(self.innerHTML);
+            index = parseInt(this.innerHTML);
             if(isAnimation) return;
 
             Index = index - 1;
+
+            lis = container.getElementsByTagName('li');
+
+            for(var i = 0,len = lis.length; i < len; i ++){
+                lis[i].className = "select";
+            }
+
+            this.className = "selected";
 
             clearInterval(self._cancelSpeed);
 
@@ -290,10 +355,10 @@
         }
 
         on(obj, 'click', function(){
-            fireAction.call(self);
+            fireAction.call(this);
         });
         on(obj,'mouseover', function(){
-            fireAction().call(self);
+            fireAction.call(this);
         })
     };
 
@@ -307,6 +372,7 @@
 
         for(var i = 0,len = imgArr.length; i < len; i ++){
             var li = document.createElement('li');
+            li.className = "select";
             li.textContent = i + 1;
             addButtonEvent.call(self, li);
             wrapper.appendChild(li);
@@ -332,20 +398,25 @@
 		for (var i = 0, len = cubes.length; i < len ; i ++) {
 
 			percentage.push([Math.floor(i / row) * percent, i % col * percent]);
+
+
+            var back_position = (percentage[i][0] * 100) + "%" + " " + percentage[i][1] * 100 + "%";
+
 			css(cubes[i], {
 				'background': "url(" + img.src + ") no-repeat",
-				'background-size': row * 100 + "%",
-				'background-position': percentage[i][0] * 100 + "%" + " " + percentage[i][1] * 100 + "%"
+				'backgroundSize': row * 100 + "%",
+				'backgroundPosition': back_position
 			});
 		}
-
 	};
 
     /**
      * 检测容器内的图片，并获取图片的宽高
      */
     function checkImg(){
-        var imgs = container.querySelectorAll('img'),
+        var self = this,
+            config = self.config,
+            imgs = container.querySelectorAll('img'),
             imgSrc = [],
             width = 0,
             height = 0,
@@ -369,8 +440,8 @@
 
         }
 
-        imgSrc.width = width;
-        imgSrc.height = height;
+        config.width = width;
+        config.height = height;
 
         return imgSrc;
     }
@@ -446,11 +517,16 @@
 
         container = this.container;
 
-        imgArr = checkImg(container);
+        imgArr = checkImg.call(self, container);
+
+        if(imgArr.length === 0){
+            container.innerHTML = "图片的大小不一致！";
+            return;
+        }
 
         css(container, {
-            'width': imgArr.width,
-            'height': imgArr.height,
+            'width': config.width,
+            'height': config.height,
             'position': 'relative'
         });
 
@@ -481,10 +557,17 @@
             config = self.config,
             cubeArr = self.cubeArr;
 
+        var lis = container.getElementsByTagName('li');
+
+        for(var i = 0,len = lis.length; i < len; i ++){
+            lis[i].className = "select";
+        }
 
         index == undefined && (index = config.index);
 
         index < 0 && (index = imgArr.length - 1) || index > (imgArr.length - 1) && (index = 0);
+
+        lis[index].className = "selected";
 
         Index = index;
 
@@ -522,7 +605,7 @@
             if(!isContinue) return;
             self.Run(Index);
         });
-    }
+    };
 
     /**
      * 切换动画
@@ -556,29 +639,33 @@
      * @param value
      */
     Splash.prototype.move = function(value, speed, duration, callback){
-        var cubes = $$(".cube");
+        var cubes = $$(".cube"),
+            self = this,
+            transitionEnd = self.config.transitionEnd;
 
         isAnimation = true;
 
-        for (var i = 0, len = cubes.length; i < len; i++) {
-            css(cubes[i], {
-                transform : rotate(value)
-            });
-        }
+//        for (var i = 0, len = cubes.length; i < len; i++) {
+//            css(cubes[i], {
+//                transform : rotate(value)
+//            });
+//        }
 
-        if(self._cancelSpeed)
-            clearTimeout(self._cancelSpeed);
-
-        // 动画停止
-        setTimeout(function(){
-            isAnimation = false;
-        }, speed);
-
-        self._cancelSpeed = setTimeout(function(){
-
-            callback();
-
-        }, speed + duration);
+//        if(self._cancelSpeed)
+//            clearTimeout(self._cancelSpeed);
+//
+////        // 动画停止
+////        setTimeout(function(){
+////            isAnimation = false;
+//////            alert(1);
+//////          transitzionEnd.call(self);
+////        }, speed);
+////
+////        self._cancelSpeed = setTimeout(function(){
+////
+////            callback();
+////
+////        }, speed + duration);
 
     };
 
